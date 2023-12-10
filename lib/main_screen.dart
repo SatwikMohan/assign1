@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:assignment/functions.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 class MainScreen extends StatefulWidget {
@@ -17,7 +18,7 @@ class _MainScreenState extends State<MainScreen> {
   RecorderController controller = RecorderController();
   bool _speechEnabled = false;
   int time = 0;
-  String _lastWords = "";
+  String _lastWords = "ew";
   String text = "Start Speaking ....";
   String displayText = "";
   int f= 0;
@@ -42,8 +43,9 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onSpeechResult(SpeechRecognitionResult result) {
     setState(() {
-      _lastWords = result.recognizedWords;
-      if(_lastWords.length<MediaQuery.of(context).size.width/3){
+      _lastWords += result.recognizedWords;
+      print(_lastWords);
+      if(_lastWords.length<(MediaQuery.of(context).size.width/3).toInt()){
         displayText = _lastWords;
       }else{
         if(f==0){
@@ -94,15 +96,17 @@ class _MainScreenState extends State<MainScreen> {
             child: Container(
               width: MediaQuery.of(context).size.width/3,
               height: 20,
-              child: Text(displayText,style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,fontSize: 12),),
+              child: Text(_lastWords,style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,fontSize: 12),),
             ),
           ),
           SizedBox(height: MediaQuery.of(context).size.height/6,),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: IconButton(onPressed: (){
+            child: IconButton(onPressed: () async{
+              final Directory appDocumentsDir = await getApplicationDocumentsDirectory();
               _startListening();
-              controller.record();
+              controller.record(path: appDocumentsDir.path+"/audiofy.m4a");
+
             },
                 icon: Icon(Icons.mic,color: Colors.white,size: 50,),
             ),
@@ -121,15 +125,28 @@ class _MainScreenState extends State<MainScreen> {
               ),
           ),
           SizedBox(height: 160,),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text('Press Mic To start listening',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,fontSize: 12),),
-              Text('Swipe Right to stop and Save',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,fontSize: 12),),
-            ],
-          )
+    GestureDetector(
+    onHorizontalDragUpdate: (details) {
+    // Note: Sensitivity is integer used when you don't want to mess up vertical drag
+    int sensitivity = 8;
+    if (details.delta.dx > sensitivity) {
+    // Right Swipe
+      _stopListening();
+      controller.stop();
+    } else if(details.delta.dx < -sensitivity){
+    //Left Swipe
+    }
+    },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text('Press Mic To start listening',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,fontSize: 12),),
+          Text('Swipe Right to stop and Save',style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,fontSize: 12),),
+        ],
+      ),
+    ),
         ],
       ),
     );
